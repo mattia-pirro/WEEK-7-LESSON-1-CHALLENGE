@@ -28,6 +28,22 @@ class LibroDigitale extends Libro {
   }
 }
 
+class LibroAudio extends Libro {
+  constructor(titolo, autore, anno, durataMinuti) {
+    super(titolo, autore, anno);
+    this.durataMinuti = durataMinuti;
+  }
+
+  formato() {
+    return `audio (${this.durataMinuti} min)`;
+  }
+}
+
+const selectFormato = document.getElementById("formato");
+const campoDimensione = document.getElementById("campo-dimensione");
+const campoDurata = document.getElementById("campo-durata");
+const formLibro = document.getElementById("aggiungi-libro");
+const listaLibri = document.getElementById("lista-libri");
 let libri = [];
 
 function renderLibri() {
@@ -48,11 +64,11 @@ function renderLibri() {
     titolo.textContent = l.titolo;
 
     const badge = document.createElement("span");
-    badge.className = "badge rounded-pill bg-light text-muted";
+    badge.className = "badge rounded-pill bg-secondary-subtle text-secondary";
     badge.textContent = l.formato();
 
     const meta = document.createElement("p");
-    meta.className = "meta fs-6 text-muted";
+    meta.className = "meta fs-6 text-muted m-0";
     meta.textContent = `${l.autore} - ${l.anno}`;
 
     info.appendChild(titolo);
@@ -60,10 +76,11 @@ function renderLibri() {
     info.appendChild(meta);
 
     const azioni = document.createElement("div");
-    azioni.className = "azioni d-flex align-items-center gap-2";
+    azioni.className = "azioni d-flex align-items-center";
 
     if (l.letto) {
       azioni.textContent = "✓ letto";
+      azioni.className = "text-success";
     } else {
       const bottone = document.createElement("button");
       bottone.type = "button";
@@ -73,6 +90,13 @@ function renderLibri() {
       azioni.appendChild(bottone);
     }
 
+    const rimuovi = document.createElement("button");
+    rimuovi.type = "button";
+    rimuovi.className = "btn btn-sm btn-outline-danger ms-2";
+    rimuovi.dataset.azione = "rimuovi";
+    rimuovi.textContent = "Rimuovi";
+
+    azioni.append(rimuovi);
     li.appendChild(info);
     li.appendChild(azioni);
 
@@ -83,15 +107,10 @@ function renderLibri() {
   document.getElementById("contatore").textContent = libri.length;
 }
 
-const selectFormato = document.getElementById("formato");
-const campoDimensione = document.getElementById("campo-dimensione");
-const campoDurata = document.getElementById("campo-durata");
-
 selectFormato.addEventListener("change", (e) => {
   campoDimensione.hidden = e.target.value !== "digitale";
+  campoDurata.hidden = e.target.value !== "audio";
 });
-
-const formLibro = document.getElementById("aggiungi-libro");
 
 formLibro.addEventListener("submit", (e) => {
   e.preventDefault();
@@ -106,6 +125,13 @@ formLibro.addEventListener("submit", (e) => {
       anno,
       Number(dati["dimensione-mb"]),
     );
+  } else if (dati.formato === "audio") {
+    nuovo = new LibroAudio(
+      dati.titolo,
+      dati.autore,
+      anno,
+      Number(dati["durata-minuti"]),
+    );
   } else {
     nuovo = new Libro(dati.titolo, dati.autore, anno);
   }
@@ -117,17 +143,21 @@ formLibro.addEventListener("submit", (e) => {
   campoDurata.hidden = true;
 });
 
-const listaLibri = document.getElementById("lista-libri");
-
 listaLibri.addEventListener("click", (e) => {
-  const bottone = e.target.closest("[data-azione='leggi']");
-  const id = bottone.closest("li").dataset.id;
-  const libro = libri.find((l) => l.id === id);
+  const bottone = e.target.closest("[data-azione]");
 
   if (!bottone) {
     return;
   }
 
-  libro.segnaComeLetto();
+  const id = bottone.closest("li").dataset.id;
+
+  if (bottone.dataset.azione === "leggi") {
+    const libro = libri.find((l) => l.id === id);
+    libro.segnaComeLetto();
+  } else if (bottone.dataset.azione === "rimuovi") {
+    libri = libri.filter((l) => l.id !== id);
+  }
+
   renderLibri();
 });
